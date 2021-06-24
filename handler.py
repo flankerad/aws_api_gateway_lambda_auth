@@ -14,9 +14,6 @@ import json
 
 from utils import authorizer, authenticator
 
-REDIS_URI = os.environ.get('REDIS_URI')
-REDIS_PORT = os.environ.get('REDIS_PORT')
-REDIS_DB = os.environ.get('REDIS_DB')
 REDIS_SOCKET_TIMEOUT = os.environ.get('REDIS_SOCKET_TIMEOUT')
 
 RESOURCE_API_URL = os.environ.get('RESOURCE_API_URL')
@@ -26,32 +23,39 @@ TOKEN_EXPIRY_DATE = os.environ.get('TOKEN_EXPIRY_DATE')
 LOGGER = logging.getLogger(__name__)
 
 def lambda_handler(event, context):
-    LOGGER.debug('EVENT {}'.format(event))
+    print('EVENT {}'.format(event))
 
     try:
-
-        principalId = event['requestContext']['accountId']
-
+        principalId = 'User'
         tmp = event['methodArn'].split(':')
         apiGatewayArnTmp = tmp[5].split('/')
         awsAccountId = tmp[4]
 
         policy = authorizer.AuthPolicy(principalId, awsAccountId)
+
         policy.restApiId = apiGatewayArnTmp[0]
         policy.region = tmp[3]
         policy.stage = apiGatewayArnTmp[1]
 
-        LOGGER.info(f'POLICY GENERATED')
         auth_token = {k.lower(): v for k, v in event['headers'].items() if k.lower() == 'authorization'}
 
-        is_valid_token = authenticator.Authentication.validate_jwt_token(auth_token)
+        print(f'POLICY GENERATED {policy}' )
 
+        if not auth_token:
+            body = "Missing Authentication Token"
+
+        is_valid_token = authenticator.Authentication.validate_jwt_token(auth_token)
 
         if is_valid_token:
             policy.allowMethod(event['requestContext']['httpMethod'], event['path'])
         else:
             policy.denyMethod(event['requestContext']['httpMethod'], event['path'])
 
+        return {
+            "statusCode": 200,
+            "body": body,
+            "isBase64Encoded": False
+        }
 
     except Exception as e:
         LOGGER.error(e)

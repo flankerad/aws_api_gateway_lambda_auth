@@ -1,7 +1,10 @@
 import os
 import sys
 import logging
-import psycopg2
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "libs"))
+
+# from  psycopg2
 import redis
 
 
@@ -11,29 +14,30 @@ PSQL_RDS_DBNAME = os.environ.get('PSQL_RDS_DBNAME')
 PSQL_RDS_USER = os.environ.get('PSQL_RDS_USERNAME')
 PSQL_RDS_PASSWORD = os.environ.get('PSQL_RDS_PASSWORD')
 
-REDIS_HOST= os.environ.get('REDIS_HOST')
-REDIS_PORT = os.environ.get('REDIS_PORT')
-REDIS_DB = os.environ.get('REDIS_DB')
+REDIS_HOST= os.environ.get('REDIS_HOST', 'localhost')
+REDIS_PORT = os.environ.get('REDIS_PORT', 6379)
+REDIS_DB = os.environ.get('REDIS_DB', 0)
 REDIS_SOCKET_TIMEOUT = os.environ.get('REDIS_SOCKET_TIMEOUT')
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
-def get_postgres_conn():
-    try:
-        psql_conn = psycopg2.connect("dbname={} user={} host={} password={}".
-                format(PSQL_RDS_DBNAME, PSQL_RDS_USER, PSQL_RDS_HOST, PSQL_RDS_PASSWORD))
+# def get_postgres_conn():
+#     try:
+#         psql_conn = psycopg2.connect("dbname={} user={} host={} password={}".
+#                 format(PSQL_RDS_DBNAME, PSQL_RDS_USER, PSQL_RDS_HOST, PSQL_RDS_PASSWORD))
 
-        logger.info("SUCCESS: Connection to RDS Postgres SQL instance succeeded")
+#         print("SUCCESS: Connection to RDS Postgres SQL instance succeeded")
 
-        return psql_conn
+#         return psql_conn
 
-    except Exception as e:
+#     except Exception as e:
 
-        logger.error("ERROR: Unexpected error: Could not connect to Postgres SQL instance.")
-        logger.error(e)
-        sys.exit()
+#         logger.error("ERROR: Unexpected error: Could not connect to Postgres SQL instance.")
+#         logger.error(e)
+#         print(e)
+#         sys.exit()
 
 
 def get_redis_conn():
@@ -44,7 +48,7 @@ def get_redis_conn():
                         db=REDIS_DB,
                         password='')
 
-        logger.info("SUCCESS: Connection to REDIS instance succeeded")
+        print("SUCCESS: Connection to REDIS instance succeeded")
 
         return redis_conn
 
@@ -52,6 +56,7 @@ def get_redis_conn():
 
         logger.error("ERROR: Unexpected error: Could not connect to Redis instance.")
         logger.error(e)
+        print(e)
         sys.exit()
 
 

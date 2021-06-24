@@ -1,3 +1,3 @@
 # authentication
 
-Authentication Layer for Gokwik
+Authentication and authorization Layer for API Gateway

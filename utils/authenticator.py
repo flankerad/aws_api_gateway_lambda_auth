@@ -1,44 +1,62 @@
+import sys
+import os
+import json
 import logging
-import secrets
 import datetime
-import traceback
+import secrets
 
-from database.connections import redis
+sys.path.append(os.path.join(os.path.dirname(__file__), "libs"))
+
+import jwt
+import requests
+import redis
+import json
+
+from utils import authorizer, authenticator
+
+REDIS_SOCKET_TIMEOUT = os.environ.get('REDIS_SOCKET_TIMEOUT')
+
+RESOURCE_API_URL = os.environ.get('RESOURCE_API_URL')
+JWT_SECRET = os.environ.get('JWT_SECRET')
+TOKEN_EXPIRY_DATE = os.environ.get('TOKEN_EXPIRY_DATE')
 
 LOGGER = logging.getLogger(__name__)
 
+def lambda_handler(event, context):
+    print('EVENT {}'.format(event))
 
-class Authentication:
-    def __init__(self):
-        self._name = 'Authentication'
+    try:
+        principalId = 'User'
+        tmp = event['methodArn'].split(':')
+        apiGatewayArnTmp = tmp[5].split('/')
+        awsAccountId = tmp[4]
 
-    def generate_jwt_access_token(payload):
-        secret = secrets.token_urlsafe(20)
-        jwt_auth_token = jwt.encode({'username': payload.get('username'),
-                            'merchant_name': payload.get('merchant_name'),
-                            'uid': payload.get('uuid'),
-                            'merchant_id': payload.get('merchant_id'),
-                            'exp': datetime.datetime.utcnow() + datetime.timedelta(days=TOKEN_EXPIRY_DATE),
-                            'iat': datetime.datetime.utcnow(),
-                            secret,
-                            algorithm='HS256')
+        policy = authorizer.AuthPolicy(principalId, awsAccountId)
 
+        policy.restApiId = apiGatewayArnTmp[0]
+        policy.region = tmp[3]
+        policy.stage = apiGatewayArnTmp[1]
+        method = apiGatewayArnTmp[2]
+        auth_token = event.get('authorizationToken')
+        resource = apiGatewayArnTmp[3]
 
-    def validate_jwt_token(jwt_auth_token):
-        try:
-            return jwt.decode(encoded, key, algorithms="HS256")
+        print(f'POLICY GENERATED {policy}' )
 
-        except expression as identifier:
-            pass
+        if not auth_token:
+            body = "Missing Authentication Token"
 
+        is_valid_token = authenticator.Authentication.validate_jwt_token(auth_token)
 
-    def get_auth_token_from_refresh_token(jwt_auth_token):
-        try:
-            payload = jwt.decode(encoded, key, algorithms="HS256")
-            payload['exp'] = datetime.datetime.utcnow() + datetime.timedelta(days=TOKEN_EXPIRY_DATE)}
-            jwt_auth_token = generate_jwt_access_token(payload)
+        if is_valid_token:
+            policy.allowMethod(method, resource)
+        else:
+            policy.denyMethod(method, resource)
 
-        except expression as identifier:
-            pass
+        return {
+            "statusCode": 200,
+            "body": body,
+            "isBase64Encoded": False
+        }
 
-        return jwt_auth_token
+    except Exception as e:
+        LOGGER.error(e)

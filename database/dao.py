@@ -1,30 +1,20 @@
 import sys
 import os
 import logging
-from connections import get_postgres_conn as psql
-from connections import get_redis_conn as redis
+# from database.connections import get_postgres_conn as psql
+from database.connections import get_redis_conn as redis
+
 
 LOGGER = logging.getLogger(__name__)
 
 
-def handler(event, context):
-    """
-    This function fetches content from MySQL RDS instance
-    """
+def save(uid, token):
+    print('SAVING..', uid)
+    redis.hset('uid', 'token', token)
 
-    item_count = 0
+    # with psql.cursor() as cur:
+    #     cur.execute('insert into jwt_token (token_id, token) values({}, {})'.format(uid, token))
+    # psql.commit()
 
-    with conn.cursor() as cur:
-        cur.execute("create table Employee ( EmpID  int NOT NULL, Name varchar(255) NOT NULL, PRIMARY KEY (EmpID))")
-        cur.execute('insert into Employee (EmpID, Name) values(1, "Joe")')
-        cur.execute('insert into Employee (EmpID, Name) values(2, "Bob")')
-        cur.execute('insert into Employee (EmpID, Name) values(3, "Mary")')
-        conn.commit()
-        cur.execute("select * from Employee")
-        for row in cur:
-            item_count += 1
-            logger.info(row)
-            #print(row)
-    conn.commit()
-
-    return "Added %d item"
+def get(uid):
+    return redis.hget('uid', 'token')
